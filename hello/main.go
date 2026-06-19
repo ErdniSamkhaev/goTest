@@ -1,113 +1,107 @@
 package main
-// strconv.Atoi — это конвертер строки в число
-import (
-	"fmt"
-	// "strconv"
-)
 
-//	func add(a int, b int) int {
-//		return a + b
-//	}
-//
-// Тоже add, только сократим
-// func add(a, b int) int {
-// 	return a + b
-// }
+import "fmt"
 
 //	func main() {
-//		result := add(2, 3)
-//		fmt.Println(result)
+//		// []int{...} — срез целых чисел (аналог массива в JS, но с нюансами)
+//		nums := []int{10, 20, 30}
+//		// fmt.Println(nums)
+//		// fmt.Println(len(nums))
+//		// обращение по индексу
+//		fmt.Println(nums[0])
+//		// обращение за пределы длины
+//		// fmt.Println(nums[5])
+//		// добавление append и ловушка
+//		nums = append(nums, 40)
+//		// append не меняет срез на месте, он возвращает новый — поэтому результат надо присвоить обратно: nums = append(...).
+//		// append(nums, 40) — компилятор даже ругнётся, что результат не используется
+//		fmt.Println(nums)
 //	}
 //
-// ----------------------------
-// Возврат двух значений
-// В JS так нельзя без массива или объекта — в Go это родное.
-// func divmod(a, b int) (int, int) {
-// 	return a / b, a % b
-// }
-
-//	func main() {
-//		q, r := divmod(17, 5)
-//		fmt.Println(q, r)
-//	}
-//
-// ------------------------
-// ошибка из stdlib
-// strconv.Atoi превращает строку в число
-// она возвращает два значения: само число И ошибку
-// Тут "42" — валидное число, поэтому ошибки нет, выведет 42 <nil>.
-// <nil> значит «ошибки нет» (это nil, аналог «пустоты» для ошибки).
+// -------------------------------------------
 //
 //	func main() {
-//		// если указать вместо 42 что тодругое например "abc"
-//		//  0 — это zero value, будет ошибка синтаксическая, то есть =>
-//		// Go сообщает о провале — не исключением, а возвращённым значением ошибки. Никаких throw, никаких try/catch.
-//		n, err := strconv.Atoi("42")
-//		fmt.Println(n, err)
-//	}
-//
-// --------------------------------
-// главный паттерн который будем писать 1000 раз
-// «вызвал → проверил err → работаешь дальше».
-//
-//	func main() {
-//		n, err := strconv.Atoi("abc")
-//		if err != nil {
-//			fmt.Println("ошибка", err)
-//			return
-//		}
-//		fmt.Println("число", n)
-//	}
-//
-// ------------------------------------
-// тоже самое но с инициализацией в if
-//
-//	func main() {
-//		if n, err := strconv.Atoi("abc"); err != nil {
-//			fmt.Println("ошибка", err)
-//		} else {
-//			fmt.Println("число", n)
+//		nums := []int{10, 20, 30}
+//		// Перебор через range
+//		// for i, v := range nums {
+//		// 	fmt.Println(i, v)
+//		// }
+//		// Если индекс не нужен — for _, v := range nums
+//		for _, v := range nums {
+//			fmt.Println(v)
 //		}
 //	}
 //
-// ----------------------------------
-// _: когда значение не нужно.
+// ------------------------------------------
+// nil-срез и zero value.
 //
 //	func main() {
-//		_, err := strconv.Atoi("99")
-//		if err != nil {
-//			fmt.Println("не число")
-//		} else {
-//			fmt.Println("это число")
+//		// Объявил срез без значения → его zero value это nil, длина 0.
+//		// к nil-срезу можно сразу делать append, он сам становится нормальным.
+//		// Снова zero value спасает: не надо отдельно «создавать пустой массив», как в JS. Выведет true, 0, [1].
+//		var s []int
+//		fmt.Println(s == nil)
+//		fmt.Println(len(s))
+//		s = append(s, 1)
+//		fmt.Println(s)
+//	}
+//
+// -----------------------------
+// (maps)
+//
+//	func main() {
+//		// map[string]int — карта, где ключ строка, значение число (аналог объекта/словаря в JS). Пишешь m[ключ] = значение, читаешь m[ключ]
+//		ages := map[string]int{}
+//		ages["Erdni"] = 30
+//		ages["Lyuba"] = 27
+//		fmt.Println(ages["Erdni"])
+//	}
+//
+// ---------------------------------
+// несуществующий ключ.
+//
+//	func main() {
+//		// В JS obj["нетТакого"] дал бы undefined. В Go — 0. Снова zero value!
+//		ages := map[string]int{"Erdni": 30}
+//		fmt.Println(ages["НетТакого"])
+//	}
+//
+// ------------------------------
+// Паттерн «запятая, ok
+//
+//	func main() {
+//		//  (n, err :=) — два возврата, второй говорит «всё ок или нет»
+//		ages := map[string]int{"Erdni": 30}
+//		v, ok := ages["Erdni"]
+//		fmt.Println(v, ok)
+//		v2, ok2 := ages["Нет такого"]
+//		fmt.Println(v2, ok2)
+//	}
+//
+// ---------------------------------
+//
+//	удаление и перебор.
+//
+//	func main() {
+//		ages := map[string]int{"Erdni": 30, "Lyuba": 27, "Неизвестный": 222}
+//		delete(ages, "Lyuba")
+//		for k, v := range ages {
+//			fmt.Println(k, v)
 //		}
 //	}
 //
-// _: когда значение не нужно с инициализацией.
-// func main() {
-// 	if _, err := strconv.Atoi("12"); err != nil {
-// 		fmt.Println("Ошибка", err)
-// 	} else {
-// 		fmt.Println("Число")
-// 	}
-// }
-// ______________________________________
-// func minmax(a, b int) (int, int) {
-// 	if a < b {
-// 		return a, b
-// 	} else {
-// 		return b, a
-// 	}
-// }
-// тоже самое без else
-func minmax(a, b int) (int, int) {
-	if a < b {
-		return a, b
+// ---------------------
+// Возвращаем сумму среза
+func sumSlice(num []int) int {
+	sum := 0
+	for _, v := range num {
+		sum += v
 	}
-	return b, a
+	return sum
 }
 
-
 func main() {
-	a, b := minmax(11, 9)
-	fmt.Println(a, b)
+	nums := []int{10, 20, 30, 40, 5}
+	result := sumSlice(nums)
+	fmt.Println(result)
 }
