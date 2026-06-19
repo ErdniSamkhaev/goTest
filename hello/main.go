@@ -1,107 +1,148 @@
 package main
 
-import "fmt"
+import (
+	"fmt"
+)
+
+// структура описывается на уровне пакета
+// type User struct {
+// 	Name string
+// 	Age  int
+// }
+
+// func main() {
+// 	u := User{Name: "Erdni", Age: 32}
+// 	fmt.Println(u)
+// 	fmt.Println(u.Name)
+// }
+// --------------------
+// меняем поля
+// type User struct {
+// 	Name string
+// 	Age  int
+// }
+
+// func main() {
+// 	u := User{Name: "Erdni", Age: 32}
+// 	u.Age = 33
+// 	fmt.Println(u.Age)
+// }
+// ----------------------
+// снова zero value
+// объявил структуру без значений → все поля сами встали в свои zero values: Name → "", Age → 0.
+// Никакого null или undefined объекта, как в JS. Структура всегда существует целиком, с занулёнными полями
+// type User struct {
+// 	Name string
+// 	Age  int
+// }
 
 //	func main() {
-//		// []int{...} — срез целых чисел (аналог массива в JS, но с нюансами)
-//		nums := []int{10, 20, 30}
-//		// fmt.Println(nums)
-//		// fmt.Println(len(nums))
-//		// обращение по индексу
-//		fmt.Println(nums[0])
-//		// обращение за пределы длины
-//		// fmt.Println(nums[5])
-//		// добавление append и ловушка
-//		nums = append(nums, 40)
-//		// append не меняет срез на месте, он возвращает новый — поэтому результат надо присвоить обратно: nums = append(...).
-//		// append(nums, 40) — компилятор даже ругнётся, что результат не используется
-//		fmt.Println(nums)
+//		var u User
+//		fmt.Println(u)
+//		fmt.Println(u.Name == "", u.Age)
 //	}
 //
-// -------------------------------------------
-//
+// -------------------------------
+// выведет {Name:Erdni Age:30}, с именами полей.
+// Обычный Println показывает только значения {Erdni 30}, а %+v — ещё и имена
+// type User struct {
+// 	Name string
+// 	Age  int
+// }
+
 //	func main() {
-//		nums := []int{10, 20, 30}
-//		// Перебор через range
-//		// for i, v := range nums {
-//		// 	fmt.Println(i, v)
-//		// }
-//		// Если индекс не нужен — for _, v := range nums
-//		for _, v := range nums {
-//			fmt.Println(v)
-//		}
+//		u := User{Name: "Erdni", Age: 30}
+//		fmt.Printf("%+v\n", u)
 //	}
 //
-// ------------------------------------------
-// nil-срез и zero value.
+// ----------------------------------
 //
-//	func main() {
-//		// Объявил срез без значения → его zero value это nil, длина 0.
-//		// к nil-срезу можно сразу делать append, он сам становится нормальным.
-//		// Снова zero value спасает: не надо отдельно «создавать пустой массив», как в JS. Выведет true, 0, [1].
-//		var s []int
-//		fmt.Println(s == nil)
-//		fmt.Println(len(s))
-//		s = append(s, 1)
-//		fmt.Println(s)
+//	ломаем: поле, которого нет.
+//
+//	type User struct {
+//		Name string
+//		Age  int
 //	}
 //
-// -----------------------------
-// (maps)
+// // Не скомпилируется — u.Email undefined. И вот ключевое отличие от JS: в JS ты можешь налепить на объект любое свойство на лету (obj.email = ... — и оно появится).
+// // В Go структура имеет фиксированный набор полей, заданный при объявлении типа. Хочешь Email — добавь его в type User struct, иначе никак.
 //
 //	func main() {
-//		// map[string]int — карта, где ключ строка, значение число (аналог объекта/словаря в JS). Пишешь m[ключ] = значение, читаешь m[ключ]
-//		ages := map[string]int{}
-//		ages["Erdni"] = 30
-//		ages["Lyuba"] = 27
-//		fmt.Println(ages["Erdni"])
-//	}
-//
-// ---------------------------------
-// несуществующий ключ.
-//
-//	func main() {
-//		// В JS obj["нетТакого"] дал бы undefined. В Go — 0. Снова zero value!
-//		ages := map[string]int{"Erdni": 30}
-//		fmt.Println(ages["НетТакого"])
+//		u := User{Name: "Erdni", Age: 30}
+//		u.Email = "test@mail.ru"
+//		fmt.Println(u)
 //	}
 //
 // ------------------------------
-// Паттерн «запятая, ok
-//
+// МЕТОДЫ
+// в скобках перед именем — (u User) — называется получатель (receiver)
+// Она и делает Greet методом «структуры User».
+// Внутри метода u — это и есть тот экземпляр, на котором его вызвали. Вызываешь как u.Greet().
+// описал структуру, а потом отдельно привязал к ней функции через receiver. Никакого class
+// type User struct {
+// 	Name string
+// 	Age  int
+// }
+
+// func (u User) Greet() string {
+// 	return "Привет, " + u.Name
+// }
+
 //	func main() {
-//		//  (n, err :=) — два возврата, второй говорит «всё ок или нет»
-//		ages := map[string]int{"Erdni": 30}
-//		v, ok := ages["Erdni"]
-//		fmt.Println(v, ok)
-//		v2, ok2 := ages["Нет такого"]
-//		fmt.Println(v2, ok2)
+//		u := User{Name: "Erdni", Age: 32}
+//		fmt.Println(u.Greet())
 //	}
 //
-// ---------------------------------
-//
-//	удаление и перебор.
-//
+// ---------------------------------------
+// ловушка: метод, который пытается изменить структуру.
+// (u User) — метод получает копию структуры. Меняет копию, а оригинал не трогает.
+// type User struct {
+// 	Name string
+// 	Age  int
+// }
+
+// func (u User) Brithday() {
+// 	u.Age = u.Age + 1
+// }
+
+// func main() {
+// 	u := User{Name: "Erdni", Age: 32}
+// 	u.Brithday()
+// 	fmt.Println(u.Age)
+// }
+// --------------------------------
+// receiver-указатель
+// *User означает «указатель на User» — метод работает с самим оригиналом, а не с его копией
+// type User struct {
+// 	Name string
+// 	Age  int
+// }
+
+// func (u *User) Brithday() {
+// 	u.Age = u.Age + 1
+// }
+
 //	func main() {
-//		ages := map[string]int{"Erdni": 30, "Lyuba": 27, "Неизвестный": 222}
-//		delete(ages, "Lyuba")
-//		for k, v := range ages {
-//			fmt.Println(k, v)
-//		}
+//		u := User{Name: "Erdni", Age: 32}
+//		u.Brithday()
+//		fmt.Println(u.Age)
 //	}
 //
-// ---------------------
-// Возвращаем сумму среза
-func sumSlice(num []int) int {
-	sum := 0
-	for _, v := range num {
-		sum += v
-	}
-	return sum
+// -------------------------
+// Задача (площадь прямоугольника)
+type Rectangle struct {
+	Width  float64
+	Height float64
+}
+// без u *Rectangle (метод только читает и ничего не меняет)
+// но вообще есть стайл-гайды, которые по умолчанию вообще всё делают на указателях для единообразия
+func (r Rectangle) Area() float64 {
+	result := r.Width * r.Height
+	return result
 }
 
 func main() {
-	nums := []int{10, 20, 30, 40, 5}
-	result := sumSlice(nums)
+	r := Rectangle{Width: 3, Height: 4}
+	result := r.Area()
 	fmt.Println(result)
 }
