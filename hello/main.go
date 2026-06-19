@@ -1,148 +1,88 @@
 package main
 
-import (
-	"fmt"
-)
+import "fmt"
 
-// структура описывается на уровне пакета
-// type User struct {
-// 	Name string
-// 	Age  int
+// адрес через &
+//
+//	func main() {
+//		x := 10
+//		p := &x
+//		fmt.Println(x)
+//		fmt.Println(p)
+//	}
+//
+// -------------
+// Значение по адресу через *
+//
+//	func main() {
+//		// *p = «сходи по адресу, который в p, и дай значение оттуда» = 10. Это разыменование.
+//		// Тут * — операция над указателем (не тип). Выведет 10
+//		x := 10
+//		p := &x
+//		fmt.Println(*p)
+//	}
+//
+// ------------------
+// меняем значение через указатель
+//
+//	func main() {
+//		// *p = 20 = «по адресу, на который смотрит p, запиши 20».
+//		// А p смотрит на x → значит x стал 20.
+//		// не трогая x напрямую, меняем его через указатель.
+//		// Теперь x и *p — это одна и та же коробка в памяти.
+//		// С указателями мы имеем общий доступ к данным без копирования
+//		x := 10
+//		p := &x
+//		*p = 20
+//		fmt.Println(x)
+//	}
+//
+// ----------------
+// связь с функциями
+// double(x) получает копию x → меняет копию → оригинал не тронут, осталось 5
+// func double(n int) {
+// 	n = n * 2
+// }
+// // doublePtr(&x) получает адрес x (через &x) → *n = ... меняет оригинал по адресу → стало 10
+// func doublePtr(n *int) {
+// 	*n = *n * 2
 // }
 
 // func main() {
-// 	u := User{Name: "Erdni", Age: 32}
-// 	fmt.Println(u)
-// 	fmt.Println(u.Name)
-// }
-// --------------------
-// меняем поля
-// type User struct {
-// 	Name string
-// 	Age  int
-// }
+// 	x := 5
+// 	double(x)
+// 	fmt.Println(x)
 
-// func main() {
-// 	u := User{Name: "Erdni", Age: 32}
-// 	u.Age = 33
-// 	fmt.Println(u.Age)
-// }
-// ----------------------
-// снова zero value
-// объявил структуру без значений → все поля сами встали в свои zero values: Name → "", Age → 0.
-// Никакого null или undefined объекта, как в JS. Структура всегда существует целиком, с занулёнными полями
-// type User struct {
-// 	Name string
-// 	Age  int
-// }
-
-//	func main() {
-//		var u User
-//		fmt.Println(u)
-//		fmt.Println(u.Name == "", u.Age)
+//		doublePtr(&x)
+//		fmt.Println(x)
 //	}
 //
-// -------------------------------
-// выведет {Name:Erdni Age:30}, с именами полей.
-// Обычный Println показывает только значения {Erdni 30}, а %+v — ещё и имена
-// type User struct {
-// 	Name string
-// 	Age  int
-// }
-
-//	func main() {
-//		u := User{Name: "Erdni", Age: 30}
-//		fmt.Printf("%+v\n", u)
-//	}
+// ------------
+// zero value and panic
 //
-// ----------------------------------
+//	Первая строка выведет true: zero value указателя — это nil (он не смотрит ни на какую коробку)
 //
-//	ломаем: поле, которого нет.
-//
-//	type User struct {
-//		Name string
-//		Age  int
-//	}
-//
-// // Не скомпилируется — u.Email undefined. И вот ключевое отличие от JS: в JS ты можешь налепить на объект любое свойство на лету (obj.email = ... — и оно появится).
-// // В Go структура имеет фиксированный набор полей, заданный при объявлении типа. Хочешь Email — добавь его в type User struct, иначе никак.
+// А вторая строка уронит программу с паникой invalid memory address or nil pointer dereference — ты пытаешься сходить по адресу, которого нет.
 //
 //	func main() {
-//		u := User{Name: "Erdni", Age: 30}
-//		u.Email = "test@mail.ru"
-//		fmt.Println(u)
+//		var p *int
+//		fmt.Println(p == nil)
+//		// fmt.Println(*p)
 //	}
 //
-// ------------------------------
-// МЕТОДЫ
-// в скобках перед именем — (u User) — называется получатель (receiver)
-// Она и делает Greet методом «структуры User».
-// Внутри метода u — это и есть тот экземпляр, на котором его вызвали. Вызываешь как u.Greet().
-// описал структуру, а потом отдельно привязал к ней функции через receiver. Никакого class
-// type User struct {
-// 	Name string
-// 	Age  int
-// }
-
-// func (u User) Greet() string {
-// 	return "Привет, " + u.Name
-// }
-
-//	func main() {
-//		u := User{Name: "Erdni", Age: 32}
-//		fmt.Println(u.Greet())
-//	}
-//
-// ---------------------------------------
-// ловушка: метод, который пытается изменить структуру.
-// (u User) — метод получает копию структуры. Меняет копию, а оригинал не трогает.
-// type User struct {
-// 	Name string
-// 	Age  int
-// }
-
-// func (u User) Brithday() {
-// 	u.Age = u.Age + 1
-// }
-
-// func main() {
-// 	u := User{Name: "Erdni", Age: 32}
-// 	u.Brithday()
-// 	fmt.Println(u.Age)
-// }
-// --------------------------------
-// receiver-указатель
-// *User означает «указатель на User» — метод работает с самим оригиналом, а не с его копией
-// type User struct {
-// 	Name string
-// 	Age  int
-// }
-
-// func (u *User) Brithday() {
-// 	u.Age = u.Age + 1
-// }
-
-//	func main() {
-//		u := User{Name: "Erdni", Age: 32}
-//		u.Brithday()
-//		fmt.Println(u.Age)
-//	}
-//
-// -------------------------
-// Задача (площадь прямоугольника)
-type Rectangle struct {
-	Width  float64
-	Height float64
-}
-// без u *Rectangle (метод только читает и ничего не меняет)
-// но вообще есть стайл-гайды, которые по умолчанию вообще всё делают на указателях для единообразия
-func (r Rectangle) Area() float64 {
-	result := r.Width * r.Height
-	return result
+// ---------------------------
+// Задача
+func swap(a, b *int) {
+	// меняем местами с помощью указателей
+	middle := *a
+	*a = *b
+	*b = middle
 }
 
 func main() {
-	r := Rectangle{Width: 3, Height: 4}
-	result := r.Area()
-	fmt.Println(result)
+	x := 1
+	y := 2
+	fmt.Println(x, y)
+	swap(&x, &y)
+	fmt.Println(x, y)
 }
