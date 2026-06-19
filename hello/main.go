@@ -1,110 +1,113 @@
 package main
+// strconv.Atoi — это конвертер строки в число
+import (
+	"fmt"
+	// "strconv"
+)
 
-import "fmt"
-
-// func main() {
-// 	age := 20
-// 	// скобок в if как в JS нет
-// 	if age >= 18
-// 		fmt.Println("совершенолетний")
-// 	else {
-// 		fmt.Println("нет")
-// 	}
+//	func add(a int, b int) int {
+//		return a + b
+//	}
+//
+// Тоже add, только сократим
+// func add(a, b int) int {
+// 	return a + b
 // }
 
-// --------------------------------
+//	func main() {
+//		result := add(2, 3)
+//		fmt.Println(result)
+//	}
+//
+// ----------------------------
+// Возврат двух значений
+// В JS так нельзя без массива или объекта — в Go это родное.
+// func divmod(a, b int) (int, int) {
+// 	return a / b, a % b
+// }
+
+//	func main() {
+//		q, r := divmod(17, 5)
+//		fmt.Println(q, r)
+//	}
+//
+// ------------------------
+// ошибка из stdlib
+// strconv.Atoi превращает строку в число
+// она возвращает два значения: само число И ошибку
+// Тут "42" — валидное число, поэтому ошибки нет, выведет 42 <nil>.
+// <nil> значит «ошибки нет» (это nil, аналог «пустоты» для ошибки).
 //
 //	func main() {
-//		age := 20
-//		// Переменная doubled создается внутри условия if
-//		if doubled := age * 2; doubled > 30 {
-//			fmt.Println(doubled, "больше 30")
+//		// если указать вместо 42 что тодругое например "abc"
+//		//  0 — это zero value, будет ошибка синтаксическая, то есть =>
+//		// Go сообщает о провале — не исключением, а возвращённым значением ошибки. Никаких throw, никаких try/catch.
+//		n, err := strconv.Atoi("42")
+//		fmt.Println(n, err)
+//	}
+//
+// --------------------------------
+// главный паттерн который будем писать 1000 раз
+// «вызвал → проверил err → работаешь дальше».
+//
+//	func main() {
+//		n, err := strconv.Atoi("abc")
+//		if err != nil {
+//			fmt.Println("ошибка", err)
+//			return
+//		}
+//		fmt.Println("число", n)
+//	}
+//
+// ------------------------------------
+// тоже самое но с инициализацией в if
+//
+//	func main() {
+//		if n, err := strconv.Atoi("abc"); err != nil {
+//			fmt.Println("ошибка", err)
+//		} else {
+//			fmt.Println("число", n)
 //		}
 //	}
 //
-// --------------------------------------
-// тернарки как в JS неь
-// status := age > 18 ? "взрослый" : "ребенок"
-// в Go так задумано: меньше способов написать одно и то же = меньше холиваров и проще читать чужой код
+// ----------------------------------
+// _: когда значение не нужно.
+//
+//	func main() {
+//		_, err := strconv.Atoi("99")
+//		if err != nil {
+//			fmt.Println("не число")
+//		} else {
+//			fmt.Println("это число")
+//		}
+//	}
+//
+// _: когда значение не нужно с инициализацией.
 // func main() {
-// 	age := 20
-// 	var status string
-// 	if age > 18 {
-// 		status = "взрослый"
+// 	if _, err := strconv.Atoi("12"); err != nil {
+// 		fmt.Println("Ошибка", err)
 // 	} else {
-// 		status = "ребенок"
+// 		fmt.Println("Число")
 // 	}
-// 	fmt.Println(status)
 // }
-
-// while нет , только for
-//
-//	func main() {
-//		for i := 0; i < 3; i++ {
-//			fmt.Println(i)
-//		}
-//	}
-//
-// ------------------------------------------
-// в Go нет while и do-while. Нужен цикл «пока условие истинно» — это тот же for, просто с одним условием:
-//
-//	func main() {
-//		n := 0
-//		for n < 3 {
-//			fmt.Println(n)
-//			n++
-//		}
-//	}
-//
-// ------------------------------------------------
-// бесконечный for + break.
-//
-//	func main() {
-//		count := 0
-//		for {
-//			if count == 3 {
-//				break
-//			}
-//			fmt.Println(count)
-//			count++
-//		}
-//	}
-//
-// ------------------------------------------------
-// тут нет break после каждого case
-// В Go switch по умолчанию не проваливается в следующий case — отработал свой и вышел сам.
-//
-//	func main() {
-//		day := 3
-//		switch day {
-//		case 1:
-//			fmt.Println("ПОнедельгтк")
-//		case 3:
-//			fmt.Println("Среда")
-//		default:
-//			fmt.Println("Другой")
-//		}
-//	}
-//
-// Можно несколько значений в одном case
-//
-//	func main() {
-//		day := 3
-//		switch day {
-//		case 6, 7:
-//			fmt.Println("выходной")
-//		default:
-//			fmt.Println("будний")
-//		}
-//	}
-//
-// --------------------------------
-func main() {
-	for i := 1; i <= 10; i++ {
-		if i%2 == 0 {
-			fmt.Println("Четное:", i)
-		} else {
-			fmt.Println("Нечетное:", i)
-		}
+// ______________________________________
+// func minmax(a, b int) (int, int) {
+// 	if a < b {
+// 		return a, b
+// 	} else {
+// 		return b, a
+// 	}
+// }
+// тоже самое без else
+func minmax(a, b int) (int, int) {
+	if a < b {
+		return a, b
 	}
+	return b, a
+}
+
+
+func main() {
+	a, b := minmax(11, 9)
+	fmt.Println(a, b)
 }
