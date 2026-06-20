@@ -2,87 +2,146 @@ package main
 
 import "fmt"
 
-// адрес через &
-//
-//	func main() {
-//		x := 10
-//		p := &x
-//		fmt.Println(x)
-//		fmt.Println(p)
-//	}
-//
-// -------------
-// Значение по адресу через *
-//
-//	func main() {
-//		// *p = «сходи по адресу, который в p, и дай значение оттуда» = 10. Это разыменование.
-//		// Тут * — операция над указателем (не тип). Выведет 10
-//		x := 10
-//		p := &x
-//		fmt.Println(*p)
-//	}
-//
-// ------------------
-// меняем значение через указатель
-//
-//	func main() {
-//		// *p = 20 = «по адресу, на который смотрит p, запиши 20».
-//		// А p смотрит на x → значит x стал 20.
-//		// не трогая x напрямую, меняем его через указатель.
-//		// Теперь x и *p — это одна и та же коробка в памяти.
-//		// С указателями мы имеем общий доступ к данным без копирования
-//		x := 10
-//		p := &x
-//		*p = 20
-//		fmt.Println(x)
-//	}
-//
-// ----------------
-// связь с функциями
-// double(x) получает копию x → меняет копию → оригинал не тронут, осталось 5
-// func double(n int) {
-// 	n = n * 2
-// }
-// // doublePtr(&x) получает адрес x (через &x) → *n = ... меняет оригинал по адресу → стало 10
-// func doublePtr(n *int) {
-// 	*n = *n * 2
+// Структуры
+// Поле Hobbies — это срез внутри структуры.
+// К нему работает append
+// type User struct {
+// 	Name    string
+// 	Hobbies []string
 // }
 
-// func main() {
-// 	x := 5
-// 	double(x)
-// 	fmt.Println(x)
-
-//		doublePtr(&x)
-//		fmt.Println(x)
-//	}
-//
-// ------------
-// zero value and panic
-//
-//	Первая строка выведет true: zero value указателя — это nil (он не смотрит ни на какую коробку)
-//
-// А вторая строка уронит программу с паникой invalid memory address or nil pointer dereference — ты пытаешься сходить по адресу, которого нет.
-//
 //	func main() {
-//		var p *int
-//		fmt.Println(p == nil)
-//		// fmt.Println(*p)
+//		u := User{Name: "Erdni", Hobbies: []string{"boxing", "go"}}
+//		u.Hobbies = append(u.Hobbies, "dogs")
+//		// для отладки "%+v\n"
+//		fmt.Printf("%+v\n", u)
 //	}
 //
-// ---------------------------
+// -------------------------
+// Структура внутри структуры
+// type Address struct {
+// 	City    string
+// 	Country string
+// }
+// // Address — отдельный тип, и он поле внутри User
+// type User struct {
+// 	Name    string
+// 	Address Address
+// }
+
+//	func main() {
+//		u := User{
+//			Name:    "Erdni",
+//			Address: Address{City: "Riga", Country: "Latvia"},
+//		}
+//		fmt.Println(u.Address.City)
+//	}
+//
+// ------------------------------------
+// Структура с картой внутри
+// но здесь проблема
+// Я создал Account, но не задал поле Balances.
+// Значит Balances встал в своё zero value.
+//  А zero value карты — это nil
+// в nil-срез append делать можно
+// а в nil-карту писать — паника.
+// Карта требует, чтобы её сначала создали, срез — нет.
+// type Account struct {
+// 	Owner    string
+// 	Balances map[string]int
+// }
+
+//	func main() {
+//		a := Account{Owner: "Erdni"}
+//		a.Balances["USD"] = 100
+//		fmt.Println(a.Balances)
+//	}
+//
+// -------------------
+// Создаем нормально с инициализированной картой
+// type Account struct {
+// 	Owner    string
+// 	Balances map[string]int
+// }
+
+// func NewAccount(owner string) Account {
+// 	return Account{
+// 		Owner:    owner,
+// 		Balances: map[string]int{}, //создаем пустую карту, не nil
+// 	}
+// }
+
+//	func main() {
+//		a := NewAccount("Erdni")
+//		a.Balances["USD"] = 100 //теперь не паникует
+//		fmt.Println(a.Balances)
+//	}
+//
+// ----------------------------
+// конструктор, возвращающий указатель
+// type User struct {
+// 	Name string
+// 	Age  int
+// }
+
+// func NewUser(name string) *User {
+// 	// &User{...} — создаёт структуру и сразу даёт её адрес. Тип возврата — *User
+// 	return &User{Name: name}
+// }
+
+//	func main() {
+//		u := NewUser("Erdni")
+//		fmt.Println(u.Name)
+//	}
+//
+// ----------------------
+// конструктор с проверкой.
+// type User struct {
+// 	Name string
+// 	Age  int
+// }
+// // Возврат (*User, error) — указатель И ошибка, тот же мультивозврат, что у strconv.Atoi
+// func NewUser(name string, age int) (*User, error) {
+// 	if age < 0 {
+// 		// Плохой ввод → nil (zero value указателя) + заполненная ошибка. Хороший → адрес + nil
+// 		return nil, fmt.Errorf("Возврат не может быть отрицательным: %d", age)
+// 	}
+// 	return &User{Name: name, Age: age}, nil
+// }
+
+//	func main() {
+//		u, err := NewUser("Erdni", -5)
+//		if err != nil {
+//			fmt.Println("ошибка", err)
+//			return
+//		}
+//		fmt.Println(u.Name, u.Age)
+//	}
+//
+// ----------------------
 // Задача
-func swap(a, b *int) {
-	// меняем местами с помощью указателей
-	middle := *a
-	*a = *b
-	*b = middle
+type Wallet struct {
+	Owner string
+	// Карта — это «коробка пар ключ→значение
+	Coins map[string]int
+}
+
+// Инициализируем карту, иначе она nil, а запись в nil-карту = паника
+func NewWallet(owner string) *Wallet {
+	return &Wallet{
+		Owner: owner,
+		Coins: map[string]int{},
+	}
+}
+
+// метод привязанный к Wallet
+func (w *Wallet) Add(coin string, amount int) {
+	w.Coins[coin] += amount
 }
 
 func main() {
-	x := 1
-	y := 2
-	fmt.Println(x, y)
-	swap(&x, &y)
-	fmt.Println(x, y)
+	w := NewWallet("Erdni")
+	w.Add("BTC", 1)
+	w.Add("BTC", 2)
+	fmt.Printf("%+v\n", w)
 }
