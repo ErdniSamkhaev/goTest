@@ -2,7 +2,12 @@ package main
 
 import "fmt"
 
-// Просто два типа
+// Интерфейсы под разные типы
+
+// type Sounder interface {
+// 	Sound() string
+// }
+
 // type Dog struct{ Name string }
 // type Cat struct{ Name string }
 
@@ -10,144 +15,113 @@ import "fmt"
 // func (c Cat) Sound() string { return "Мяу" }
 
 //	func main() {
-//		d := Dog{Name: "Курама"}
-//		c := Cat{Name: "Мося"}
-//		fmt.Println(d.Sound())
-//		fmt.Println(c.Sound())
+//		// []Sounder — это срез, в который сложены разные конкретные типы (Dog и Cat вперемешку), но снаружи они все «звучащие».
+//		animals := []Sounder{
+//			Dog{Name: "Курама"},
+//			Cat{Name: "Мося"},
+//			Dog{Name: "Rex"},
+//		}
+//		for _, a := range animals {
+//			fmt.Println(a.Sound())
+//		}
 //	}
 //
-// -------------------
-// а если я хочу функцию, которая примет любого, кто умеет издавать звук — и собаку, и кошку, и кого угодно ещё
-// добавляем интерфейс
+// ----------------------------------
+// функция работающая со всем зоопарком (расширяемость)
+// type Sounder interface {
+// 	Sound() string
+// }
+
 // type Dog struct{ Name string }
 // type Cat struct{ Name string }
 
 // func (d Dog) Sound() string { return "Гав" }
 // func (c Cat) Sound() string { return "Мяу" }
 
-// // интерфейс
-// type Sounder interface {
-// 	Sound() string
-// }
-
-// // функция принимающая интерефейс
-// func describe(s Sounder) {
-// 	fmt.Println("Звук:", s.Sound())
+// func concert(sounders []Sounder) {
+// 	for _, s := range sounders {
+// 		fmt.Println("♪", s.Sound())
+// 	}
 // }
 
 //	func main() {
-//		d := Dog{Name: "Курама"}
-//		c := Cat{Name: "Мося"}
-//		describe(d)
-//		describe(c)
+//		animals := []Sounder{
+//			Dog{Name: "Курама"},
+//			Cat{Name: "Мося"},
+//		}
+//		// принимает срез интерфейса
+//		concert(animals)
 //	}
 //
-// -------------------------------
-// Делаем все тоже самое но с добавлением типа без метода
-// и будет ошибка implement Sounder
-// type Dog struct{ Name string }
-// type Cat struct{ Name string }
-// type Rock struct{}
-
-// func (d Dog) Sound() string { return "Гав" }
-// func (c Cat) Sound() string { return "Мяу" }
-
-// // интерфейс
-// type Sounder interface {
-// 	Sound() string
-// }
-
-// // функция принимающая интерефейс
-// func describe(s Sounder) {
-// 	fmt.Println("Звук:", s.Sound())
-// }
-
-//	func main() {
-//		d := Dog{Name: "Курама"}
-//		c := Cat{Name: "Мося"}
-//		r := Rock{}
-//		describe(d)
-//		describe(c)
-//		describe(r)
-//	}
-//
-// -----------------------------
-// Теперь добавляем третий тип так, чтобы не трогать describe(функицю принимающая интерфейс)
-// type Dog struct{ Name string }
-// type Cat struct{ Name string }
-// type Bird struct{ Name string }
-
-// func (d Dog) Sound() string  { return "Гав" }
-// func (c Cat) Sound() string  { return "Мяу" }
-// func (b Bird) Sound() string { return "Кря" }
-
-// // интерфейс
-// type Sounder interface {
-// 	Sound() string
-// }
-
-// // функция принимающая интерефейс
-// func describe(s Sounder) {
-// 	fmt.Println("Звук:", s.Sound())
-// }
-
+// --------------------
+// Пустой интерфейс any
+// any (раньше писали interface{}) — это интерфейс с пустым списком методов. А раз методов ноль — то любой тип его удовлетворяет (у каждого типа «есть все ноль методов»).
+// Поэтому в any можно положить что угодно: число, строку, bool, структуру. Это Go-аналог «динамической переменной», как let x в JS, куда можно пихать всё подряд.
 // func main() {
-// 	d := Dog{Name: "Курама"}
-// 	c := Cat{Name: "Мося"}
-// 	describe(d)
-// 	describe(c)
-// 	describe(Bird{Name: "Кеша"})
-// }
-// ---------------------------------------
-// теперь error
-// type Dog struct{ Name string }
-// type Cat struct{ Name string }
-// type Bird struct{ Name string }
+// 	var x any
+// 	x = 42
+// 	fmt.Println(x)
 
-// func (d Dog) Sound() string  { return "Гав" }
-// func (c Cat) Sound() string  { return "Мяу" }
-// func (b Bird) Sound() string { return "Кря" }
+// 	x = "Привет"
+// 	fmt.Println(x)
 
-// // интерфейс
-// type Sounder interface {
-// 	Sound() string
-// }
-// // интрефейс ошибки
-// type error interface{
-// 	Error() string
-// }
-
-// // функция принимающая интерефейс
-// func describe(s Sounder) {
-// 	fmt.Println("Звук:", s.Sound())
-// }
-
-//	func main() {
-//		d := Dog{Name: "Курама"}
-//		c := Cat{Name: "Мося"}
-//		describe(d)
-//		describe(c)
-//		describe(Bird{Name: "Кеша"})
+//		x = true
+//		fmt.Println(x)
 //	}
 //
-// -------------------------------
+// -------------------------
+// Но в any есть ограничение
+//
+//	func main() {
+//		// Не скомпилируется. Хотя ты знаешь, что там 42, Go видит только тип any — а с any нельзя делать +, потому что компилятор не знает, число там или строка.
+//		// Вот плата за «any»: ты теряешь типовую информацию, и обычные операции становятся недоступны.
+//		var x any = 42
+//		fmt.Println(x + 1)
+//	}
+//
+// ---------------------------
+// Как достать типо обратно: type assertion
+//
+//	func main() {
+//		// x.(int) — это type assertion: «я утверждаю, что внутри x лежит int, дай мне его как int». После этого n — нормальный int, с ним + 1 работае
+//		var x any = 42
+//		n := x.(int)
+//		fmt.Println(n + 1)
+//	}
+//
+// ------------------------------
+// А если ошибся типом?
+//
+//	func main() {
+//		// .(int) тут уронила бы панику. А форма с двумя значениями n, ok := — безопасная: если тип не совпал, ok = false, а n = 0 (zero value).
+//		// Это тот же value, ok паттерн, что у карт (v, ok := m[key]) — два возврата, второй говорит «получилось или нет».
+//		var x any = "строка, а не число"
+//		n, ok := x.(int)
+//		fmt.Println(n, ok)
+//		// any только когда тип реально заранее неизвестен (универсальные контейнеры, парсинг произвольного JSON)
+//	}
+//
+// ----------------------------------
 // Задача
-// Создаем типы простые
-type English struct{}
-type Russian struct{}
-// даем типам метод Greet
-func (e English) Greet() string { return "Hello" }
-func (r Russian) Greet() string { return "Привет" }
 // интерфейс
-type Greeter interface {
-	Greet() string
+type Shape interface {
+	Area() float64
 }
-// функция принимающая интерфейс
-func sayHi(g Greeter) {
-	fmt.Println(g.Greet())
-}
+
+// типы
+type Circle struct{ Radius float64 }
+type Square struct{ Side float64 }
+
+// методы
+func (c Circle) Area() float64 { return 3.14159 * c.Radius * c.Radius }
+func (s Square) Area() float64 { return s.Side * s.Side }
 
 func main() {
-	sayHi(English{})
-	sayHi(Russian{})
+	result := []Shape{
+		Circle{Radius: 10},
+		Square{Side: 10},
+	}
+	for _, v := range result {
+		fmt.Println(v.Area())
+	}
 }
