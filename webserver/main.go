@@ -75,6 +75,39 @@ func listTargets(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(targets)
 }
 
+func deleteTarget(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodDelete {
+		http.Error(w, "только DELETE", http.StatusMethodNotAllowed)
+		return
+	}
+
+	address := r.URL.Query().Get("address")
+	if address == "" {
+		http.Error(w, "укажи address", http.StatusBadRequest)
+	}
+
+	mu.Lock()
+	defer mu.Unlock()
+
+	newTargets := []Result{}
+	found := false
+	for _, t := range targets {
+		if t.Address == address {
+			found = true
+			continue
+		}
+		newTargets = append(newTargets, t)
+	}
+	targets = newTargets
+
+	w.Header().Set("Content-Type", "application/json")
+	if found {
+		fmt.Fprintf(w, "Удален: %s\n", address)
+	} else {
+		fmt.Fprintf(w, "Не найден: %s\n", address)
+	}
+}
+
 func main() {
 	http.HandleFunc("/", home)
 	http.HandleFunc("/status", status)
@@ -83,6 +116,8 @@ func main() {
 
 	http.HandleFunc("/targets", listTargets)
 	http.HandleFunc("/targets/add", addTarget)
+
+	http.HandleFunc("/targets/delete", deleteTarget)
 
 	fmt.Println("Сервер запущен на: http://localhost:8080")
 	http.ListenAndServe(":8080", nil)
