@@ -4,7 +4,12 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	// "strconv"
+	"sync"
+)
+
+var (
+	targets []Result
+	mu      sync.Mutex
 )
 
 type Status struct {
@@ -50,14 +55,24 @@ func addTarget(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var target Result
-	err := json.NewDecoder(r.Body).Decode(&target)
-	if err != nil {
+	if err := json.NewDecoder(r.Body).Decode(&target); err != nil {
 		http.Error(w, "Плохой JSON", http.StatusBadRequest)
-		return
 	}
 
+	mu.Lock()
+	targets = append(targets, target)
+	mu.Unlock()
+
 	w.Header().Set("Content-Type", "application/json")
-	fmt.Println(w, "Принял хост: %s (alive=%v)\n", target.Address, target.Alive)
+	json.NewEncoder(w).Encode(target)
+}
+
+func listTargets(w http.ResponseWriter, r *http.Request) {
+	mu.Lock()
+	defer mu.Unlock()
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(targets)
 }
 
 func main() {
@@ -65,6 +80,9 @@ func main() {
 	http.HandleFunc("/status", status)
 	http.HandleFunc("/results", results)
 	http.HandleFunc("/addTarget", addTarget)
+
+	http.HandleFunc("/targets", listTargets)
+	http.HandleFunc("/targets/add", addTarget)
 
 	fmt.Println("Сервер запущен на: http://localhost:8080")
 	http.ListenAndServe(":8080", nil)
