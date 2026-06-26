@@ -1,8 +1,10 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/jackc/pgx/v5/pgxpool"
 	"net/http"
 	"sync"
 )
@@ -10,6 +12,7 @@ import (
 var (
 	targets []Result
 	mu      sync.Mutex
+	db      *pgxpool.Pool
 )
 
 type Status struct {
@@ -57,22 +60,38 @@ func addTarget(w http.ResponseWriter, r *http.Request) {
 	var target Result
 	if err := json.NewDecoder(r.Body).Decode(&target); err != nil {
 		http.Error(w, "Плохой JSON", http.StatusBadRequest)
+		return
 	}
 
-	mu.Lock()
-	targets = append(targets, target)
-	mu.Unlock()
+	_, err := db.Exec(context.Background(),
+		"INSERT INTO targets (address, alive) VALUES ($1, $2)",
+		target.Address, target.Alive)
+	if err != nil {
+		http.Error(w, "ошибка записи в базу", http.StatusInternalServerError)
+		return
+	}
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(target)
 }
 
 func listTargets(w http.ResponseWriter, r *http.Request) {
-	mu.Lock()
-	defer mu.Unlock()
+	rows, err := db.Query(context.Background(), "SELECT address, alive FROM targets")
+	if err != nil {
+		http.Error(w, "ошибка чтения из базы", http.StatusInternalServerError)
+		return
+	}
+	defer rows.Close()
+
+	results := []Result{}
+	for rows.Next() {
+		var t Result
+		rows.Scan(&t.Address, &t.Alive)
+		results = append(results, t)
+	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(targets)
+	json.NewEncoder(w).Encode(results)
 }
 
 func deleteTarget(w http.ResponseWriter, r *http.Request) {
@@ -84,35 +103,39 @@ func deleteTarget(w http.ResponseWriter, r *http.Request) {
 	address := r.URL.Query().Get("address")
 	if address == "" {
 		http.Error(w, "укажи address", http.StatusBadRequest)
+		return
 	}
 
-	mu.Lock()
-	defer mu.Unlock()
-
-	newTargets := []Result{}
-	found := false
-	for _, t := range targets {
-		if t.Address == address {
-			found = true
-			continue
-		}
-		newTargets = append(newTargets, t)
+	result, err := db.Exec(context.Background(), "DELETE FROM targets WHERE address=$1", address)
+	if err != nil {
+		http.Error(w, "ошибка удаления", http.StatusInternalServerError)
+		return
 	}
-	targets = newTargets
 
 	w.Header().Set("Content-Type", "application/json")
-	if found {
-		fmt.Fprintf(w, "Удален: %s\n", address)
+	if result.RowsAffected() > 0 {
+		fmt.Fprintf(w, "Удалён: %s\n", address)
 	} else {
 		fmt.Fprintf(w, "Не найден: %s\n", address)
 	}
 }
 
 func main() {
+	connStr := "postgres://postgres:secret@127.0.0.1:5432/checker?sslmode=disable"
+
+	pool, err := pgxpool.New(context.Background(), connStr)
+	if err != nil {
+		fmt.Println("не удалось подключиться к базе:", err)
+		return
+	}
+	defer pool.Close()
+	db = pool // сохраняем в глобальную переменную
+
+	fmt.Println("База подключена")
+
 	http.HandleFunc("/", home)
 	http.HandleFunc("/status", status)
 	http.HandleFunc("/results", results)
-	http.HandleFunc("/addTarget", addTarget)
 
 	http.HandleFunc("/targets", listTargets)
 	http.HandleFunc("/targets/add", addTarget)
