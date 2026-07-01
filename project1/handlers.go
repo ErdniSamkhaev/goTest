@@ -2,6 +2,8 @@ package main
 
 import (
 	"context"
+	"crypto/rand"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -36,11 +38,16 @@ func shorten(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// хардкордим
-	shortCode := "abc123"
+	// подставляем короткую ссылку
+	shortCode, err := generateSymbols()
+	if err != nil {
+		log.Printf("ошибка генерации кода: %v", err)
+		http.Error(w, "Ошибка сервера", http.StatusInternalServerError)
+		return
+	}
 
-	// сохраняем в бд
-	query := `INSERT INTO linksDb (short_code, original_url) VALUES ($1, $2)`
+	// сохраняем в бд (переименовал на links Таблицу)
+	query := `INSERT INTO links (short_code, original_url) VALUES ($1, $2)`
 	_, err = db.Exec(context.Background(), query, shortCode, req.URL)
 	if err != nil {
 		log.Printf("Ошибка при сохранении в бд: %v", err)
@@ -66,7 +73,7 @@ func getLinks(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// 2. Запрашиваем все ссылки из БД
-	query := `SELECT id, short_code, original_url, created_at FROM linksDb ORDER BY id DESC`
+	query := `SELECT id, short_code, original_url, created_at FROM links ORDER BY id DESC`
 	rows, err := db.Query(context.Background(), query)
 	if err != nil {
 		log.Printf("Ошибка при запросе из бд: %v", err)
@@ -103,4 +110,16 @@ func getLinks(w http.ResponseWriter, r *http.Request) {
 	// 6. Отправляем JSON
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(links)
+}
+
+func generateSymbols() (string, error) {
+	// генерим 4 байта (достаточно для 6 символов в base64 без padding)
+	b := make([]byte, 4)
+	if _, err := rand.Read(b); err != nil {
+		return "", err
+	}
+	// используем raw URL-safe base64 (без '+' и '/'), обрезаем до 6 символов
+	code := base64.RawURLEncoding.EncodeToString(b)
+	return code[:6], nil
+
 }

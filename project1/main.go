@@ -8,7 +8,7 @@ import (
 )
 
 func main() {
-	connStr := "postgres://postgres:secret@127.0.0.1:5432/linksDb"
+	connStr := "postgres://postgres:secret@127.0.0.1:5433/links-db"
 
 	// 1. Создаём пул соединений
 	pool, err := pgxpool.New(context.Background(), connStr)
